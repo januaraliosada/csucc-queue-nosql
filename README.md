@@ -60,8 +60,11 @@ Ensure you have the following installed on your system:
 *   **npm** or **pnpm**: Package managers for Node.js.
 *   **MongoDB**: Version 7.0 or higher. You can install MongoDB Community Edition by following the official MongoDB documentation for your operating system. For Ubuntu, you can use the following commands:
     ```bash
-    wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
-    echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+    sudo apt-get remove --purge mongodb-org*
+    sudo apt-get autoremove
+    sudo apt-get autoclean
+    wget -qO - https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg
+    echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
     sudo apt update
     sudo apt install -y mongodb-org
     sudo systemctl start mongod
@@ -78,6 +81,9 @@ Ensure you have the following installed on your system:
 
 2.  **Install backend dependencies:**
     ```bash
+    rm -rf node_modules
+    rm package-lock.json
+
     npm install
     # or
     pnpm install
@@ -111,8 +117,6 @@ Ensure you have the following installed on your system:
 
 2.  **Install frontend dependencies:**
     ```bash
-    npm install
-    # or
     pnpm install
     ```
 
@@ -125,7 +129,7 @@ Ensure you have the following installed on your system:
 
 4.  **Start the frontend development server:**
     ```bash
-    npm run dev
+    pnpm run dev
     ```
     The frontend application will typically be accessible at `http://localhost:5173/`.
 
