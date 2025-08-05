@@ -6,17 +6,22 @@ const AuthContext = createContext()
 export default function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [user, setUser] = useState(null)
 
   useEffect(() => {
-    const stored = localStorage.getItem('/auth')
-    setIsAuthenticated(!!stored)
+    const token = localStorage.getItem('auth_token')
+    const userData = localStorage.getItem('user_data')
+    if (token && userData) {
+      setIsAuthenticated(true)
+      setUser(JSON.parse(userData))
+    }
   }, [])
 
   const login = async (username, password) => {
     setIsLoading(true)
     
     try {
-      // Try backend authentication first
+      // Try backend authentication
       const backendUrl = getBackendUrl()
       const response = await fetch(`${backendUrl}/auth/login`, {
         method: 'POST',
@@ -29,24 +34,15 @@ export default function AuthProvider({ children }) {
       if (response.ok) {
         const result = await response.json()
         if (result.access_token) {
-          localStorage.setItem('auth', 'true')
-          localStorage.setItem('auth_token', 'authenticated') // Simple token for this implementation
+          localStorage.setItem('auth_token', result.access_token)
+          localStorage.setItem('user_data', JSON.stringify(result.user))
           setIsAuthenticated(true)
+          setUser(result.user)
           setIsLoading(false)
           return true
         }
-      }
-      
-      // Fallback to environment variables if backend is not available
-      const envUsername = import.meta.env.VITE_USERNAME
-      const envPassword = import.meta.env.VITE_PASSWORD
-
-      if (username === envUsername && password === envPassword) {
-        localStorage.setItem('auth', 'true')
-        localStorage.setItem('auth_token', 'authenticated')
-        setIsAuthenticated(true)
-        setIsLoading(false)
-        return true
+      } else {
+        console.error('Login failed:', response.status, response.statusText)
       }
       
       setIsLoading(false)
@@ -54,28 +50,16 @@ export default function AuthProvider({ children }) {
       
     } catch (error) {
       console.error('Authentication error:', error)
-      
-      // Fallback to environment variables
-      const envUsername = import.meta.env.VITE_USERNAME
-      const envPassword = import.meta.env.VITE_PASSWORD
-
-      if (username === envUsername && password === envPassword) {
-        localStorage.setItem('auth', 'true')
-        localStorage.setItem('auth_token', 'authenticated')
-        setIsAuthenticated(true)
-        setIsLoading(false)
-        return true
-      }
-      
       setIsLoading(false)
       return false
     }
   }
 
   const logout = () => {
-    localStorage.removeItem('auth')
     localStorage.removeItem('auth_token')
+    localStorage.removeItem('user_data')
     setIsAuthenticated(false)
+    setUser(null)
   }
 
   const getAuthToken = () => {
@@ -86,6 +70,7 @@ export default function AuthProvider({ children }) {
     <AuthContext.Provider value={{ 
       isAuthenticated, 
       isLoading, 
+      user,
       login, 
       logout, 
       getAuthToken 

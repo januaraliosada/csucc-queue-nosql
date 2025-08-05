@@ -14,6 +14,8 @@ This repository contains the updated CSUCC Cashier Queue System, which has been 
     - [Prerequisites](#prerequisites)
     - [Backend Setup](#backend-setup)
     - [Frontend Setup](#frontend-setup)
+  - [Default Login Credentials](#default-login-credentials)
+    - [Creating Additional Users](#creating-additional-users)
   - [System Improvements](#system-improvements)
   - [Future Enhancements](#future-enhancements)
   - [License](#license)
@@ -25,10 +27,11 @@ The CSUCC Cashier Queue System offers the following key features:
 *   **Real-time Queue Synchronization**: Utilizes WebSockets to broadcast queue state updates to all connected clients in real-time, ensuring immediate updates across multiple devices.
 *   **Customer Management**: Provides functionalities for adding customers to the queue (including priority customers), calling the next customer to a window, and completing service.
 *   **Multi-Window Support**: Manages queue flow efficiently across multiple cashier windows.
-*   **Authentication & Authorization**: Secures API endpoints and WebSocket connections using JWT (JSON Web Tokens) for staff login.
+*   **Secure Authentication & Authorization**: Features JWT-based authentication with bcrypt password hashing, role-based access control (admin/cashier), and secure user management stored in MongoDB.
 *   **Persistent Queue State**: Maintains the queue state persistently in a MongoDB database, ensuring data consistency even across disconnections and server restarts.
 *   **Sound Notification Triggering**: Triggers sound notifications on public displays for events like customer calls.
 *   **Print Queue**: Allows printing of queue cards for customers.
+*   **User Management**: Admin users can create and manage cashier accounts through secure API endpoints.
 
 ## System Architecture
 
@@ -132,6 +135,31 @@ Ensure you have the following installed on your system:
     pnpm run dev
     ```
     The frontend application will typically be accessible at `http://localhost:5173/`.
+
+## Default Login Credentials
+
+For initial setup and testing, use these default credentials:
+
+- **Username**: `admin`
+- **Password**: `password`
+- **Role**: `admin`
+
+**Important Security Note**: The default admin account is automatically created when the backend starts for the first time. For production environments, immediately change the default password and create additional user accounts as needed.
+
+### Creating Additional Users
+
+Admin users can create new cashier accounts through the API:
+
+```bash
+curl -X POST http://localhost:5000/auth/create-user \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "username": "cashier1",
+    "password": "secure_password",
+    "role": "cashier"
+  }'
+```
 
 ## System Improvements
 
