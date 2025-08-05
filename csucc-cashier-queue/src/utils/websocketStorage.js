@@ -14,8 +14,11 @@ class WebSocketQueueStorage {
     this.isConnected = false
     this.currentState = null
     this.reconnectAttempts = 0
-    this.maxReconnectAttempts = 5
+    this.maxReconnectAttempts = Infinity // Allow infinite reconnection attempts
     this.reconnectDelay = 1000 // Start with 1 second
+    this.maxReconnectDelay = 30000 // Maximum 30 seconds between attempts
+    this.reconnectTimer = null
+    this.connectionCheckInterval = null
     
     // Default state structure
     this.defaultState = {
@@ -31,8 +34,61 @@ class WebSocketQueueStorage {
     // Initialize WebSocket connection
     this.initializeConnection()
     
+    // Start periodic connection check
+    this.startConnectionCheck()
+    
     // Initialize sound system on first user interaction
 
+  }
+
+  /**
+   * Start periodic connection check
+   */
+  startConnectionCheck() {
+    // Check connection every 5 seconds
+    this.connectionCheckInterval = setInterval(() => {
+      if (!this.isConnected && !this.reconnectTimer) {
+        console.log('Connection lost, attempting to reconnect...')
+        this.attemptReconnection()
+      }
+    }, 5000)
+  }
+
+  /**
+   * Stop periodic connection check
+   */
+  stopConnectionCheck() {
+    if (this.connectionCheckInterval) {
+      clearInterval(this.connectionCheckInterval)
+      this.connectionCheckInterval = null
+    }
+  }
+
+  /**
+   * Attempt to reconnect to the server
+   */
+  attemptReconnection() {
+    if (this.reconnectTimer) {
+      return // Already attempting to reconnect
+    }
+
+    this.reconnectAttempts++
+    
+    // Calculate delay with exponential backoff, capped at maxReconnectDelay
+    const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay)
+    
+    console.log(`Attempting to reconnect (attempt ${this.reconnectAttempts}) in ${delay}ms`)
+    
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null
+      
+      if (this.socket) {
+        this.socket.disconnect()
+      }
+      
+      // Re-initialize connection
+      this.initializeConnection()
+    }, delay)
   }
 
   /**
@@ -81,6 +137,12 @@ class WebSocketQueueStorage {
       this.reconnectAttempts = 0
       this.reconnectDelay = 1000
       
+      // Clear any pending reconnection timer
+      if (this.reconnectTimer) {
+        clearTimeout(this.reconnectTimer)
+        this.reconnectTimer = null
+      }
+      
       // Join the queue room for updates
       this.socket.emit("join_queue_room")
     })
@@ -89,15 +151,24 @@ class WebSocketQueueStorage {
       console.log("Disconnected from WebSocket server:", reason)
       this.isConnected = false
       
-      if (reason === "io server disconnect") {
-        // Server initiated disconnect, try to reconnect
-        this.handleReconnection()
+      // Always attempt to reconnect regardless of disconnect reason
+      if (!this.reconnectTimer) {
+        setTimeout(() => {
+          this.attemptReconnection()
+        }, 1000) // Wait 1 second before starting reconnection attempts
       }
     })
 
     this.socket.on("connect_error", (error) => {
       console.error("WebSocket connection error:", error)
-      this.handleConnectionError()
+      this.isConnected = false
+      
+      // Attempt reconnection on connection error
+      if (!this.reconnectTimer) {
+        setTimeout(() => {
+          this.attemptReconnection()
+        }, 1000)
+      }
     })
 
     this.socket.on("queue_state_update", (state) => {
@@ -169,25 +240,6 @@ class WebSocketQueueStorage {
       this.currentState = this.defaultState;
       this.notifyListeners(this.currentState);
     });
-  }
-
-  /**
-   * Handle reconnection attempts
-   */
-  handleReconnection() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++
-      this.reconnectDelay *= 2 // Exponential backoff
-      
-      console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${this.reconnectDelay}ms`)
-      
-      setTimeout(() => {
-        this.socket.connect()
-      }, this.reconnectDelay)
-    } else {
-      console.error('Max reconnection attempts reached, falling back to localStorage')
-      this.handleConnectionError()
-    }
   }
 
 
@@ -350,6 +402,14 @@ class WebSocketQueueStorage {
    * Cleanup method
    */
   destroy() {
+    // Clear timers
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+    
+    this.stopConnectionCheck()
+    
     if (this.socket) {
       this.socket.emit('leave_queue_room')
       this.socket.disconnect()
