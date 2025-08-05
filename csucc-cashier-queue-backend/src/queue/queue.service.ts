@@ -165,45 +165,31 @@ export class QueueService implements OnModuleInit {
     customer.isPriority = !customer.isPriority;
     await customer.save();
 
-    // Remove customer from current position
-    queueState.current_queue = queueState.current_queue.filter(
-      id => !id.equals(customer._id as Types.ObjectId)
-    );
-
-    // Get all customers in queue to determine new position
-    const queueCustomers = await this.customerModel.find({
-      _id: { $in: queueState.current_queue }
-    }).sort({ joinedAt: 1 });
-
-    if (customer.isPriority) {
-      // Find position to insert priority customer
-      const lastPriorityIndex = queueCustomers.findLastIndex(c => c.isPriority);
-      
-      if (lastPriorityIndex === -1) {
-        queueState.current_queue.unshift(customer._id as Types.ObjectId);
-      } else {
-        const insertIndex = lastPriorityIndex + 1;
-        queueState.current_queue.splice(insertIndex, 0, customer._id as Types.ObjectId);
-      }
-    } else {
-      // Regular customer - find correct position based on joinedAt
-      const regularCustomers = queueCustomers.filter(c => !c.isPriority);
-      const insertIndex = regularCustomers.findIndex(c => c.joinedAt > customer.joinedAt);
-      
-      if (insertIndex === -1) {
-        queueState.current_queue.push(customer._id as Types.ObjectId);
-      } else {
-        const priorityCount = queueCustomers.filter(c => c.isPriority).length;
-        queueState.current_queue.splice(priorityCount + insertIndex, 0, customer._id as Types.ObjectId);
-      }
-    }
-
-    queueState.lastUpdated = new Date();
-    await queueState.save();
+    // Reorder the entire queue after priority change
+    await this.reorderQueue(queueState);
 
     await this.emitState();
     return true;
   }
+
+
+  private async reorderQueue(queueState: QueueStateDocument): Promise<void> {
+    const customers = await this.customerModel.find({
+      _id: { $in: queueState.current_queue },
+      status: 'waiting'
+    }).sort({ joinedAt: 1 });
+
+    // Separate and sort by joinedAt
+    const priority = customers.filter(c => c.isPriority);
+    const regular = customers.filter(c => !c.isPriority);
+
+    const newQueue = [...priority, ...regular].map(c => c._id as Types.ObjectId);
+
+    queueState.current_queue = newQueue;
+    queueState.lastUpdated = new Date();
+    await queueState.save();
+  }
+
 
   async callNextCustomer(windowId: number): Promise<any | null> {
     const queueState = await this.queueStateModel.findById(this.QUEUE_STATE_ID);
@@ -277,27 +263,29 @@ export class QueueService implements OnModuleInit {
   }
 
   async resetQueue(): Promise<boolean> {
-    // Update all waiting customers to skipped
-    await this.customerModel.updateMany(
-      { status: 'waiting' },
-      { status: 'skipped' }
-    );
+    // Step 1: (Optional) Delete all customers for a fresh start
+    await this.customerModel.deleteMany({}); // ⚠️ Be careful: deletes all
 
-    // Reset queue state
+    // Step 2: Reset queue state
     const queueState = await this.queueStateModel.findById(this.QUEUE_STATE_ID);
     if (!queueState) return false;
 
     queueState.current_queue = [];
     queueState.next_customer_number = 1;
+
     queueState.windows = queueState.windows.map(window => ({
       ...window,
       status: 'available',
       current_customer_id: null,
     }));
+
     queueState.lastUpdated = new Date();
     await queueState.save();
 
+    // Step 3: Notify frontend or state consumers
     await this.emitState();
+
+    console.log('Queue has been successfully reset.');
     return true;
   }
 }
