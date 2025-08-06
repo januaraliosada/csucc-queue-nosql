@@ -141,7 +141,7 @@ export class QueueService implements OnModuleInit {
     queueState.next_customer_number++;
     queueState.lastUpdated = new Date();
     await queueState.save();
-
+    await this.reorderQueue(queueState);
     await this.emitState();
     
     return {
