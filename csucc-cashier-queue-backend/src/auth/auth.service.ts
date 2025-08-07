@@ -17,9 +17,12 @@ export class AuthService implements OnModuleInit {
     // Check if admin user exists, if not, create one
     const adminUser = await this.userModel.findOne({ username: 'admin' });
     if (!adminUser) {
-      const hashedPassword = await bcrypt.hash('password', 10); // Default password 'password'
+      const hashedPassword = await bcrypt.hash(
+        process.env.ADMIN_PASSWORD || '123456',
+        10,
+      ); // Default password 'password'
       const newAdmin = new this.userModel({
-        username: 'admin',
+        username: process.env.ADMIN_USERNAME || 'admin',
         password_hash: hashedPassword,
         role: 'admin',
       });
@@ -31,13 +34,13 @@ export class AuthService implements OnModuleInit {
   async validateUser(username: string, pass: string): Promise<any> {
     const user = await this.userModel.findOne({ username });
     if (user && (await bcrypt.compare(pass, user.password_hash))) {
-      const { password_hash, ...result } = user.toObject();
+      const { ...result } = user.toObject();
       return result;
     }
     return null;
   }
 
-  async login(user: any) {
+  login(user: any) {
     const payload = { username: user.username, sub: user._id, role: user.role };
     return {
       access_token: this.jwtService.sign(payload),
@@ -50,7 +53,7 @@ export class AuthService implements OnModuleInit {
 
   async createUser(createUserDto: CreateUserDto): Promise<any> {
     const { username, password, role } = createUserDto;
-    
+
     // Check if user already exists
     const existingUser = await this.userModel.findOne({ username });
     if (existingUser) {
@@ -69,7 +72,7 @@ export class AuthService implements OnModuleInit {
 
     await newUser.save();
 
-    const { password_hash, ...result } = newUser.toObject();
+    const { ...result } = newUser.toObject();
     return result;
   }
 }

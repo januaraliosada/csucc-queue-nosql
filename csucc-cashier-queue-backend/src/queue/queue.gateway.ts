@@ -113,7 +113,7 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     try {
       // Validate password before allowing reset
-      const validPassword = "csucccashier2025"; // You can make this configurable
+      const validPassword = process.env.RESET_PASSWORD || "123456"; // You can make this configurable
       
       if (!data.password || data.password !== validPassword) {
         client.emit("queue_reset", { 
