@@ -39,19 +39,21 @@ export default function AuthProvider({ children }) {
           setIsAuthenticated(true)
           setUser(result.user)
           setIsLoading(false)
-          return true
+          return {status: 'success', message: 'Login successful'}
         }
       } else {
+        setIsLoading(false)
         console.error('Login failed:', response.status, response.statusText)
+        return {status: 'error', message: 'Invalid credentials'}
       }
       
       setIsLoading(false)
-      return false
-      
+      return {status: 'error', message: 'Login failed no access token'}
+
     } catch (error) {
       console.error('Authentication error:', error)
       setIsLoading(false)
-      return false
+      return {status: 'error', message: 'Login failed: ' + error.message}
     }
   }
 

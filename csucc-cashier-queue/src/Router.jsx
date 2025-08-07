@@ -5,6 +5,7 @@ import App from './App.jsx'
 import PublicDisplay from './PublicDisplay.jsx'
 import LoginPage from './LoginPage.jsx'
 import { useAuth } from './AuthContext.jsx'
+import { ToastContainer } from 'react-toastify'
 import './App.css'
 
 function HomePage() {
@@ -87,21 +88,35 @@ function ProtectedRoute({ children }) {
 
 function AppRouter() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/display" element={<PublicDisplay />} />
-        <Route
-          path="/window"
-          element={
-            <ProtectedRoute>
-              <App />
-            </ProtectedRoute>
-          }
+    <>
+      <Router>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/display" element={<PublicDisplay />} />
+          <Route
+            path="/window"
+            element={
+              <ProtectedRoute>
+                <App />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/login" element={<LoginPage />} />
+        </Routes>
+      </Router>
+      <ToastContainer
+        position="top-center"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss={false}
+        draggable={false}
+        pauseOnHover={false}
+        theme="light"
         />
-        <Route path="/login" element={<LoginPage />} />
-      </Routes>
-    </Router>
+    </>
   )
 }
 
