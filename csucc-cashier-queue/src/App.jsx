@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { Button } from '@/components/ui/button.jsx'
@@ -23,24 +23,57 @@ function App() {
   const { logout } = useAuth()
 
   // Subscribe to queue state changes
-  useEffect(() => {
+  useEffect(() => {  
     const unsubscribe = websocketQueueStorage.subscribe((newState) => {
       setQueueState(newState)
     })
 
-    // Check connection status periodically
-    const checkConnection = () => {
-      setIsConnected(websocketQueueStorage.isConnectedToServer())
-    }
-    
-    checkConnection()
-    const connectionInterval = setInterval(checkConnection, 1000)
+    let connectionIntervalId; // Declare a variable to hold the interval ID
 
+    const startCheckingConnection = () => {
+      // Clear any existing interval before starting a new one
+      if (connectionIntervalId) {
+        clearInterval(connectionIntervalId);
+      }
+      connectionIntervalId = setInterval(() => {
+        console.log('Checking connection status...');
+        setIsConnected(websocketQueueStorage.isConnectedToServer());
+      }, 1000);
+    };
+
+    const stopCheckingConnection = () => {
+      if (connectionIntervalId) {
+        clearInterval(connectionIntervalId);
+        connectionIntervalId = null; // Reset the ID
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        console.log('Page is hidden, stopping connection check.');
+        stopCheckingConnection();
+      } else {
+        console.log('Page is visible, starting connection check.');
+        startCheckingConnection();
+      }
+    };
+
+    // Initial check and start polling if visible
+    if (!document.hidden) {
+      startCheckingConnection();
+    } else {
+      setIsConnected(websocketQueueStorage.isConnectedToServer()); // Get current status even if hidden
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Cleanup function
     return () => {
       unsubscribe()
-      clearInterval(connectionInterval)
-    }
-  }, [])
+      stopCheckingConnection();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []); // Empty dependency array means this effect runs once on mount and cleans up on unmount
 
   const handleAddCustomer = useCallback((isPriority = false) => {
     const newCustomer = websocketQueueStorage.addCustomer(isPriority)
