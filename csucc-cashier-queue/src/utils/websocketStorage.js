@@ -2,7 +2,7 @@
 // This module handles all queue state management using WebSocket connection to backend
 
 import { io } from 'socket.io-client'
-
+import { toast } from  'react-toastify'
 
 
 
@@ -217,13 +217,25 @@ class WebSocketQueueStorage {
     this.socket.on("queue_reset", (response) => {
       if (response.success) {
         console.log("Queue reset successfully")
+        this.showToast('success', response.message || "Queue has been reset")
       } else {
         console.error("Queue reset failed:", response.message)
-        alert(response.message || "Failed to reset queue")
+        this.showToast('error', response.message || "Failed to reset queue")
       }
     })
   }
-
+  showToast = (type, message) => {
+    toast[type](message, {
+      position: "top-center",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: false,
+      draggable: false,
+      progress: undefined,
+      theme: "light",
+    });
+  }
   /**
    * Handle connection errors and fallback to localStorage
    */
