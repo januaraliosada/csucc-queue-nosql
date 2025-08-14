@@ -13,7 +13,7 @@ function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-6">
       <div className="max-w-2xl mx-auto text-center">
         <h1 className="text-5xl font-bold text-gray-900 mb-6">
-          Cashier Queue Management System
+          Window Queue Management System
         </h1>
         <p className="text-xl text-gray-600 mb-12">
           Choose your interface to get started
@@ -85,6 +85,59 @@ function ProtectedRoute({ children }) {
   
   return children
 }
+// New NotFoundPage component
+function NotFoundPage() {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100vh',
+      backgroundColor: '#f8f9fa',
+      color: '#333',
+      fontFamily: 'Arial, sans-serif',
+      textAlign: 'center',
+      padding: '20px'
+    }}>
+      <h1 style={{
+        fontSize: '6rem',
+        margin: '0',
+        color: '#ff6b6b',
+        textShadow: '2px 2px 4px rgba(0,0,0,0.1)'
+      }}>404</h1>
+      <h2 style={{
+        fontSize: '2rem',
+        margin: '10px 0',
+        color: '#555'
+      }}>Oops! Page Not Found</h2>
+      <p style={{
+        fontSize: '1.2rem',
+        margin: '10px 0 20px',
+        maxWidth: '400px',
+        color: '#777'
+      }}>
+        The page you're looking for doesn't exist or has been moved. Let's get you back on track.
+      </p>
+      <a href="/" style={{
+        display: 'inline-block',
+        padding: '12px 24px',
+        backgroundColor: '#007bff',
+        color: '#fff',
+        textDecoration: 'none',
+        borderRadius: '5px',
+        fontWeight: 'bold',
+        transition: 'background-color 0.3s ease',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+      }}
+      onMouseOver={(e) => e.target.style.backgroundColor = '#0056b3'}
+      onMouseOut={(e) => e.target.style.backgroundColor = '#007bff'}
+      >
+        Go Back Home
+      </a>
+    </div>
+  );
+}
 
 function AppRouter() {
   return (
@@ -101,7 +154,7 @@ function AppRouter() {
               </ProtectedRoute>
             }
           />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Router>
       <ToastContainer
