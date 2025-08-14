@@ -112,6 +112,10 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     try {
+      console.log("Resetting queue with password");
+      console.log("Received password:", data.password);
+      console.log("Expected password:", process.env.RESET_PASSWORD || "123456");
+      
       // Validate password before allowing reset
       const validPassword = process.env.RESET_PASSWORD || "123456"; // You can make this configurable
       
